@@ -15,10 +15,13 @@ public class MazeGen : MonoBehaviour
     [SerializeField]
     GameObject Wall;
 
+    [SerializeField]
+    GameObject Destroyer;
+
     // Start is called before the first frame update
     void Start()
     {
-        Vector4[,] maze = new Vector4[width, height];
+        bool[,] maze = new bool[width, height];
         maze = GenerateInitialMaze(width, height, maze);
         GameObject[] walls = new GameObject[width * height * 4];
         GenerateWalls(width, height, maze, walls, Wall);
@@ -30,7 +33,7 @@ public class MazeGen : MonoBehaviour
 
     }
 
-    public static Vector4[,] GenerateInitialMaze(int a_width, int a_height, Vector4[,] a_maze)
+    public static bool[,] GenerateInitialMaze(int a_width, int a_height, bool[,] a_maze)
     {
         uint counter = 0;
         for (int i = 0; i < a_width; i++)
@@ -38,19 +41,17 @@ public class MazeGen : MonoBehaviour
             for(int j = 0; j < a_height; j++)
             {
                 counter++;
-                a_maze[i, j] = new Vector4(1, 1, 1, 1); //Each 1 in the node represents a wall = (1 Right Wall, 1 Left Wall, 1 Top Wall, 1 Bottom Wall)
-                Debug.Log("node " + counter + " is " + a_maze[i,j].x + ", " + a_maze[i, j].y + ", " + a_maze[i, j].z + ", " + a_maze[i, j].w);
+                a_maze[i, j] = false; //Each 1 in the node represents a wall = (1 Right Wall, 1 Left Wall, 1 Top Wall, 1 Bottom Wall)
+                Debug.Log("node " + counter + " is " + a_maze[i, j]);
             }
         }
         return a_maze;
     }
-
-    public static Vector4[,] GenerateMaze(int a_width, int a_height, Vector4[,] a_maze)
+    public static bool[,] GenerateMaze(int a_width, int a_height, bool[,] a_maze)
     {
         return a_maze;
     }
-
-    public static GameObject[] GenerateWalls(int a_width, int a_height, Vector4[,] a_maze, GameObject[] a_wall, GameObject Wall)
+    public static GameObject[] GenerateWalls(int a_width, int a_height, bool[,] a_maze, GameObject[] a_wall, GameObject Wall)
     {
         uint counter = 0;
         for (int i = 0; i < a_width; i++)
