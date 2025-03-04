@@ -42,6 +42,7 @@ public class MazeGenerator : MonoBehaviour
     public static Vector4 down = new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 
     //Visualisation delay variables
+    private Queue<Vector2> visualisationOrder = new Queue<Vector2>();
     private Queue<System.Action> mazeSteps = new Queue<System.Action>();
     private bool isVisualizing = false;
     [SerializeField]
@@ -65,7 +66,7 @@ public class MazeGenerator : MonoBehaviour
             if (timeSinceLastStep >= visualizationSpeed)
             {
                 timeSinceLastStep = 0f;
-                mazeSteps.Dequeue()?.Invoke(); // Execute the next visualization step
+                mazeSteps.Dequeue()?.Invoke(); //Execute the next visualization step
             }
         }
     }
@@ -76,6 +77,8 @@ public class MazeGenerator : MonoBehaviour
         {
             //Clear any existing maze objects before visualising a new maze
             ClearMaze(maze);
+            //Clear the visualisation order if there's anything left in the stack
+            visualisationOrder.Clear();
         }
         maze = UpdateMaze(width, height, wall, obstacle, useSeed, seed, usePerlinNoise, perlinTolerance, perlinScale, randomiseOffset, perlinOffset.x, perlinOffset.y);
     }
@@ -205,46 +208,41 @@ public class MazeGenerator : MonoBehaviour
                 i_maze[x, y].walls.Add(Instantiate(i_obstacle, new Vector3(x, 0, y), Quaternion.Euler(0, 0, 0)));
             }
         }
-
-        //Go through every Cell
-        for (int y = 0; y < i_maze.GetLength(1); y++)
+        while (visualisationOrder.Count > 0)
         {
-            for (int x = 0; x < i_maze.GetLength(0); x++)
+            Vector2 currentPosition = visualisationOrder.Dequeue();
+            int posX = (int)currentPosition.x, posY = (int)currentPosition.y; // Store values to avoid closure issues
+            mazeSteps.Enqueue(() =>
             {
-                int posX = x, posY = y; // Store values to avoid closure issues
-                //Add each maze step to the queue
-                mazeSteps.Enqueue(() =>
+                if (!i_maze[posX, posY].nullCell)
                 {
-                    if (!i_maze[posX, posY].nullCell)
+                    //Remove the obstacle from the cell before instantiating walls
+                    foreach (var wall in i_maze[posX, posY].walls)
                     {
-                        //Remove the obstacle from the cell before instantiating walls
-                        foreach (var wall in i_maze[posX, posY].walls)
-                        {
-                            Destroy(wall);
-                        }
-                        if (i_maze[posX, posY].activeWalls.x == 1)    //Right Wall
-                        {
-                            //Instantiate the maze wall and add to the list of walls sorted in the cell
-                            i_maze[posX, posY].walls.Add(Instantiate(i_wall, new Vector3(posX + 0.5f, 0, posY), Quaternion.Euler(0, 90, 0)));
-                        }
-                        if (i_maze[posX, posY].activeWalls.y == 1)    //Left Wall
-                        {
-                            //Instantiate the maze wall and add to the list of walls sorted in the cell
-                            i_maze[posX, posY].walls.Add(Instantiate(i_wall, new Vector3(posX - 0.5f, 0, posY), Quaternion.Euler(0, 90, 0)));
-                        }
-                        if (i_maze[posX, posY].activeWalls.z == 1)    //Top Wall
-                        {
-                            //Instantiate the maze wall and add to the list of walls sorted in the cell
-                            i_maze[posX, posY].walls.Add(Instantiate(i_wall, new Vector3(posX, 0, posY + 0.5f), Quaternion.Euler(0, 0, 0)));
-                        }
-                        if (i_maze[posX, posY].activeWalls.w == 1)    //Bottom Wall
-                        {
-                            //Instantiate the maze wall and add to the list of walls sorted in the cell
-                            i_maze[posX, posY].walls.Add(Instantiate(i_wall, new Vector3(posX, 0, posY - 0.5f), Quaternion.Euler(0, 0, 0)));
-                        }
+                        Destroy(wall);
                     }
-                });
-            }
+                    if (i_maze[posX, posY].activeWalls.x == 1)    //Right Wall
+                    {
+                        //Instantiate the maze wall and add to the list of walls sorted in the cell
+                        i_maze[posX, posY].walls.Add(Instantiate(i_wall, new Vector3(posX + 0.5f, 0, posY), Quaternion.Euler(0, 90, 0)));
+                    }
+                    if (i_maze[posX, posY].activeWalls.y == 1)    //Left Wall
+                    {
+                        //Instantiate the maze wall and add to the list of walls sorted in the cell
+                        i_maze[posX, posY].walls.Add(Instantiate(i_wall, new Vector3(posX - 0.5f, 0, posY), Quaternion.Euler(0, 90, 0)));
+                    }
+                    if (i_maze[posX, posY].activeWalls.z == 1)    //Top Wall
+                    {
+                        //Instantiate the maze wall and add to the list of walls sorted in the cell
+                        i_maze[posX, posY].walls.Add(Instantiate(i_wall, new Vector3(posX, 0, posY + 0.5f), Quaternion.Euler(0, 0, 0)));
+                    }
+                    if (i_maze[posX, posY].activeWalls.w == 1)    //Bottom Wall
+                    {
+                        //Instantiate the maze wall and add to the list of walls sorted in the cell
+                        i_maze[posX, posY].walls.Add(Instantiate(i_wall, new Vector3(posX, 0, posY - 0.5f), Quaternion.Euler(0, 0, 0)));
+                    }
+                }
+            });
         }
 
         isVisualizing = true;
@@ -329,6 +327,8 @@ public class MazeGenerator : MonoBehaviour
 
             //Get the neighbouring cells to visit
             List<Neighbour> unvisitedNeighbouringCells = CheckForUnvisited(i_maze, currentPosition);
+            //Also add the position to the Visualisation order
+            visualisationOrder.Enqueue(currentPosition);
 
             if (unvisitedNeighbouringCells.Count > 0)
             {
@@ -358,6 +358,8 @@ public class MazeGenerator : MonoBehaviour
                 {
                     cell = i_maze[(int)currentPosition.x, (int)currentPosition.y]
                 });
+                //Add the position to the Visualisation order
+                visualisationOrder.Enqueue(currentPosition);
 
                 //As there are no unvisited cells nearby set reversing to true
                 reversing = true;
