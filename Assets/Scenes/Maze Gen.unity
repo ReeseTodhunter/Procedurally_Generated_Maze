@@ -5506,8 +5506,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36e2881d44204bb40998ca378100463f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 40
-  height: 40
+  width: 20
+  height: 20
   useSeed: 0
   seed: 0
   usePerlinNoise: 1
@@ -5519,6 +5519,7 @@ MonoBehaviour:
   obstacle: {fileID: 3380118366318244419, guid: 47f83aeb02c46934c9eafa898844e7aa, type: 3}
   camera: {fileID: 963194225}
   camHeight: 50
+  visualizationSpeed: 0
 --- !u!4 &2079608270
 Transform:
   m_ObjectHideFlags: 0
