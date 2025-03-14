@@ -70,7 +70,19 @@ public class MazeGenerator : MonoBehaviour
             }
         }
     }
-
+    public void BasicUpdateAction()
+    {
+        if (maze != null)
+        {
+            //Clear any existing maze objects before visualising a new maze
+            ClearMaze(maze);
+            //Clear the visualisation order if there's anything left in the stack
+            visualisationOrder.Clear();
+            isVisualizing = false;
+            mazeSteps.Clear();
+        }
+        maze = UpdateMaze(width, height, wall, obstacle, useSeed, seed, usePerlinNoise, perlinTolerance, perlinScale, randomiseOffset, perlinOffset.x, perlinOffset.y, true);
+    }
     public void UpdateAction()
     {
         if (maze != null)
@@ -79,16 +91,19 @@ public class MazeGenerator : MonoBehaviour
             ClearMaze(maze);
             //Clear the visualisation order if there's anything left in the stack
             visualisationOrder.Clear();
+            isVisualizing = false;
+            mazeSteps.Clear();
         }
-        maze = UpdateMaze(width, height, wall, obstacle, useSeed, seed, usePerlinNoise, perlinTolerance, perlinScale, randomiseOffset, perlinOffset.x, perlinOffset.y);
+        maze = UpdateMaze(width, height, wall, obstacle, useSeed, seed, usePerlinNoise, perlinTolerance, perlinScale, randomiseOffset, perlinOffset.x, perlinOffset.y, false);
     }
 
-    public Cell[,] UpdateMaze(int i_width, int i_height, GameObject i_wall, GameObject i_obstacle, bool i_useSeed = false, int i_seed = 0, bool i_usePerlin = false, float i_tolerance = 0.7f, float i_scale = 5, bool i_randomOffset = false, float i_xOffset = 0, float i_yOffset = 0)
+    public Cell[,] UpdateMaze(int i_width, int i_height, GameObject i_wall, GameObject i_obstacle, bool i_useSeed = false, int i_seed = 0, bool i_usePerlin = false, float i_tolerance = 0.7f, float i_scale = 5, bool i_randomOffset = false, float i_xOffset = 0, float i_yOffset = 0, bool basic = false)
     {
         Cell[,] maze = GenerateGrid(i_width, i_height);
         maze = GenerateMaze(maze, i_useSeed, i_seed, i_usePerlin, i_tolerance, i_scale, i_randomOffset, i_xOffset, i_yOffset);
-        
-        maze = NewVisualiseMaze(maze, i_wall, i_obstacle);
+
+        if (!basic) maze = NewVisualiseMaze(maze, i_wall, i_obstacle);
+        else maze = BasicVisualiseMaze(maze, i_wall, i_obstacle);
 
         return maze;
     }
@@ -158,7 +173,7 @@ public class MazeGenerator : MonoBehaviour
         return i_maze;
     }
 
-    public Cell[,] VisualiseMaze(Cell[,] i_maze, GameObject i_wall, GameObject i_obstacle)
+    public Cell[,] BasicVisualiseMaze(Cell[,] i_maze, GameObject i_wall, GameObject i_obstacle)
     {
         //Go through every Cell
         for (int y = 0; y < i_maze.GetLength(1); y++)
@@ -190,6 +205,7 @@ public class MazeGenerator : MonoBehaviour
                 }
                 else
                 {
+                    //Fill in perlin noise points with obstacle blocks
                     i_maze[x, y].walls.Add(Instantiate(i_obstacle, new Vector3(x, 0, y), Quaternion.Euler(0, 0, 0)));
                 }
             }
@@ -205,13 +221,17 @@ public class MazeGenerator : MonoBehaviour
         {
             for (int x = 0; x < i_maze.GetLength(0); x++)
             {
+                //Fill the grid with obstacle blocks
                 i_maze[x, y].walls.Add(Instantiate(i_obstacle, new Vector3(x, 0, y), Quaternion.Euler(0, 0, 0)));
             }
         }
+        //Go through the backtracked route
         while (visualisationOrder.Count > 0)
         {
+            //Go through each position in the visualisation queue
             Vector2 currentPosition = visualisationOrder.Dequeue();
-            int posX = (int)currentPosition.x, posY = (int)currentPosition.y; // Store values to avoid closure issues
+            int posX = (int)currentPosition.x, posY = (int)currentPosition.y; //Store the x and y values
+            //Requeue the instantiate action to be called in update
             mazeSteps.Enqueue(() =>
             {
                 if (!i_maze[posX, posY].nullCell)
@@ -327,13 +347,14 @@ public class MazeGenerator : MonoBehaviour
 
             //Get the neighbouring cells to visit
             List<Neighbour> unvisitedNeighbouringCells = CheckForUnvisited(i_maze, currentPosition);
-            //Also add the position to the Visualisation order
-            visualisationOrder.Enqueue(currentPosition);
 
             if (unvisitedNeighbouringCells.Count > 0)
             {
                 //If there is an available neighbour push the current position back into the stack
                 positionStack.Push(currentPosition);
+
+                //Add the position to the Visualisation order
+                visualisationOrder.Enqueue(currentPosition);
 
                 //Get a random neighbour in the unvisited cells
                 Neighbour nextCell = unvisitedNeighbouringCells[i_rand.Next(0, unvisitedNeighbouringCells.Count)];
